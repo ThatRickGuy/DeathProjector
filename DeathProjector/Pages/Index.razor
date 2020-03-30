@@ -1,0 +1,318 @@
+﻿@page "/"
+@using System.ComponentModel.DataAnnotations;
+@using Telerik.Blazor;
+@using Telerik.Blazor.Components;
+@using DevExpress.Blazor;
+<div style="width:100%;">
+
+    <div style="width:66%; min-width:500px; border: 1px solid black; float:right; ">
+        <DevExpress.Blazor.DxChart Data="@Data" CustomizeSeriesPoint="@PreparePointColor">
+            <DevExpress.Blazor.DxChartTitle Text=@(Nation + " COVID-19")>
+                <DxChartSubTitle Text="Deaths, Projected vs Reported per Day" />
+            </DevExpress.Blazor.DxChartTitle>
+
+            <DxChartValueAxis>
+                <DxChartAxisTitle Text="Deaths"></DxChartAxisTitle>
+            </DxChartValueAxis>
+            <DxChartValueAxis Name="InfectionAxis" Position="@HorizontalEdge.Right">
+                <DxChartAxisTitle Text="<span style='color:red'>Infections</span>"></DxChartAxisTitle>
+            </DxChartValueAxis>
+
+            <DxChartTooltip>
+                <div class="p-3">
+                    <b>@context.Point.SeriesName</b><br />
+                    Date: @context.Point.Argument<br />
+                    @ResolveSeriesValueType(context.Point.SeriesName): @ResolveSeriesValue(context.Point.SeriesName, (int)context.Point.Value)
+                </div>
+            </DxChartTooltip>
+
+            <DevExpress.Blazor.DxChartLegend AllowToggleSeries="true" Orientation="@Orientation.Horizontal" HorizontalAlignment="@HorizontalAlignment.Center" VerticalAlignment="@VerticalEdge.Bottom" Position="@RelativePosition.Outside">
+            </DevExpress.Blazor.DxChartLegend>
+
+            <DevExpress.Blazor.DxChartBarSeries Name="Daily Reported Deaths" Filter="@((Services.OutputModel s) => s.ProjectedDeaths > 0)" AggregationMethod="@Enumerable.Sum" ArgumentField="@(s => s.Date.ToShortDateString())" ValueField="@(s => s.ReportedDeaths)">
+            </DevExpress.Blazor.DxChartBarSeries>
+            <DevExpress.Blazor.DxChartLineSeries Name="Daily Projected Deaths" Filter="@((Services.OutputModel s) => s.ProjectedDeaths > 0)" AggregationMethod="@Enumerable.Sum" ArgumentField="@(s => s.Date.ToShortDateString())" ValueField="@(s => s.ProjectedDeaths)">
+            </DevExpress.Blazor.DxChartLineSeries>
+            <DevExpress.Blazor.DxChartLineSeries Name="Total Projected Infected" Filter="@((Services.OutputModel s) => s.ProjectedDeaths > 0)" AggregationMethod="@Enumerable.Sum" ArgumentField="@(s => s.Date.ToShortDateString())" ValueField="@(s => s.TotalProjectedInfections)" Axis="InfectionAxis">
+            </DevExpress.Blazor.DxChartLineSeries>
+            <DevExpress.Blazor.DxChartLineSeries Name="Total Reported Deaths" Filter="@((Services.OutputModel s) => s.ProjectedDeaths > 0)" AggregationMethod="@Enumerable.Sum" ArgumentField="@(s => s.Date.ToShortDateString())" ValueField="@(s => s.TotalReportedDeaths)">
+            </DevExpress.Blazor.DxChartLineSeries>
+            <DevExpress.Blazor.DxChartLineSeries Name="Total Projected Deaths" Filter="@((Services.OutputModel s) => s.ProjectedDeaths > 0)" AggregationMethod="@Enumerable.Sum" ArgumentField="@(s => s.Date.ToShortDateString())" ValueField="@(s => s.TotalProjectedDeaths)">
+            </DevExpress.Blazor.DxChartLineSeries>
+
+        </DevExpress.Blazor.DxChart>
+    </div>
+
+    <EditForm Model="@this" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <h2>Estimates</h2>
+        <p>
+            Average number of days from infection to death:<br />
+            <InputNumber id="DaysTillDeath" @bind-Value="this.DaysTillDeath" /><br />
+            Average number of days for infected population count to double:<br />
+            <InputNumber id="DaysTillDouble" @bind-Value="this.DaysTillDouble" /><br />
+            Expected Case Fatality Rate (%):<br />
+            <InputNumber id="CaseFatalityRate" @bind-Value="this.CaseFatalityRate" /><br />
+            Expected Max Population Infected:<br />
+            <InputNumber id="MaxInfection" @bind-Value="this.MaxInfection" /><br />
+        </p>
+        <h2>Facts</h2>
+        <p>
+            Nation/State:<br />
+            <select @bind="this.Nation">
+                <option value="US">USA</option>
+                <option value="Italy">Italy</option>
+                <option value="WI">Wisconsin</option>
+            </select><br />
+            Target Date:<br />
+            <InputDate id="TargetDate" @bind-Value="this.TargetDate" /><br />
+            Deaths on target date:<br />
+            <InputNumber id="DeathsOnTargetDate" @bind-Value="this.DeathsOnTargetDate"></InputNumber><br />
+            Days from target date to project:<br />
+            <InputNumber id="ProjectionLength" @bind-Value="this.ProjectionLength"></InputNumber><br />
+        </p>
+        <h2>Mitigations</h2>
+        <p>
+            Social Distancing Date:<br />
+            <InputDate id="SocialDistancingDate" @bind-Value="this.SocialDistancingDate"></InputDate>Impacting death rate as of @this.SocialDistancingDate.AddDays(this.DaysTillDeath).ToShortDateString()<br />
+            New average number of days for infected population count to double:<br />
+            <InputNumber id="SocialDistancingDoublingRate" @bind-Value="this.SocialDistancingDoublingRate"></InputNumber><br />
+        </p>
+        <p>
+            Shelter In Place Date:<br />
+            <InputDate id="ShelterInPlaceDate" @bind-Value="this.ShelterInPlaceDate"></InputDate> Impacting death rate as of @this.ShelterInPlaceDate.AddDays(this.DaysTillDeath).ToShortDateString()<br />
+            New average number of days for infected population count to double:<br />
+            <InputNumber id="ShelterInPlaceDoublingRate" @bind-Value="this.ShelterInPlaceDoublingRate"></InputNumber><br />
+        </p>
+        <p>
+            Lockdown Date:<br />
+            <InputDate id="LockdownDate" @bind-Value="this.LockdownDate"></InputDate> Impacting death rate as of @this.LockdownDate.AddDays(this.DaysTillDeath).ToShortDateString()<br />
+            New average number of days for infected population count to double:<br />
+            <InputNumber id="LockdownDoublingRate" @bind-Value="this.LockdownDoublingRate"></InputNumber><br />
+        </p>
+        <button type="submit">Submit</button>
+        <br />
+
+    </EditForm>
+
+
+
+    <br />
+    <br />
+    <br />
+
+    <h1>Output:</h1>
+    <div class="container">
+        <div class='row thead-dark'>
+            <div class='col - sm'>Date</div>
+            <div class='col - sm'>New Infections</div>
+            <div class='col - sm'>Total Infections</div>
+            <div class='col - sm'>New Deaths</div>
+            <div class='col - sm'><a href="https://www.worldometers.info/coronavirus/country/us/">Reported Deaths</a></div>
+            <div class='col - sm'>Total Deaths</div>
+            <div class='col - sm'><a href="https://www.worldometers.info/coronavirus/country/us/">Total Reported Deaths</a></div>
+        </div>
+        @((MarkupString)Output)
+
+    </div>
+
+</div>
+
+@code {
+    protected string ResolveSeriesValue(string Name, int Value)
+    {
+        var sReturn = "";
+        sReturn = string.Format("{0:n0}", Value);
+        return sReturn;
+    }
+
+    protected string ResolveSeriesValueType(string Name)
+    {
+        var sReturn = "Deaths";
+        if (Name == "Total Projected Infected") sReturn = "Infected";
+        return sReturn;
+    }
+
+    protected void PreparePointColor(ChartSeriesPointCustomizationSettings pointSettings)
+    {
+        if (pointSettings.Point.SeriesName != "Daily Reported Deaths") pointSettings.PointAppearance.Visible = false;
+        if (pointSettings.Point.SeriesName == "Total Projected Infected")
+        {
+            if (pointSettings.Point.Argument.ToString() == this.SocialDistancingDate.AddDays(-1).ToShortDateString())
+            {
+                pointSettings.PointAppearance.Visible = true;
+                pointSettings.PointAppearance.Color = System.Drawing.Color.LightGreen;
+            }
+            else if (pointSettings.Point.Argument.ToString() == this.ShelterInPlaceDate.AddDays(-1).ToShortDateString())
+            {
+                pointSettings.PointAppearance.Visible = true;
+                pointSettings.PointAppearance.Color = System.Drawing.Color.Yellow;
+            }
+            else if (pointSettings.Point.Argument.ToString() == this.LockdownDate.AddDays(-1).ToShortDateString())
+            {
+                pointSettings.PointAppearance.Visible = true;
+                pointSettings.PointAppearance.Color = System.Drawing.Color.Red;
+            }
+        }
+    }
+
+
+
+
+    private string _Nation;
+    private string Nation
+    {
+        get
+        {
+            return _Nation;
+        }
+        set
+        {
+            _Nation = value;
+            ChangeCountry();
+            HandleValidSubmit();
+        }
+    }
+    private DateTime DeathReportsStartOn;
+    private int DaysTillDeath = 19;
+    [Range(1, 10, ErrorMessage = "Double range limited to 1-10.")]
+    private double DaysTillDouble;
+    private double CaseFatalityRate = 1;
+    private int MaxInfection;
+    private DateTime TargetDate;
+    private int DeathsOnTargetDate;
+    private int ProjectionLength;
+    private DateTime SocialDistancingDate;
+    private double SocialDistancingDoublingRate;
+
+    private DateTime ShelterInPlaceDate;
+    private double ShelterInPlaceDoublingRate;
+
+    private DateTime LockdownDate;
+    private double LockdownDoublingRate;
+    private string Output = "";
+
+    private List<Services.OutputModel> Data;
+
+    protected override void OnInitialized()
+    {
+        Nation = "US";
+        ProjectionLength = (int)(DateTime.Now.Date.AddDays(5) - TargetDate).TotalDays;
+    }
+
+    protected void ChangeCountry()
+    {
+        if (Nation == "US")
+        {
+            DeathReportsStartOn = DateTime.Parse("2/29/2020");
+            DaysTillDouble = 2.54;
+            MaxInfection = 66200530;
+            TargetDate = DateTime.Parse("3/5/2020");
+            DeathsOnTargetDate = 1;
+            SocialDistancingDate = DateTime.Parse("3/15/2020");
+            SocialDistancingDoublingRate = 4.5;
+            ShelterInPlaceDate = DateTime.Parse("3/25/2020");
+            ShelterInPlaceDoublingRate = 6.5;
+            LockdownDate = DateTime.Parse("3/31/2020");
+            LockdownDoublingRate = 10;
+        }
+
+        if (Nation == "Italy")
+        {
+            DeathReportsStartOn = DateTime.Parse("2/21/2020");
+            DaysTillDouble = 2.5;
+            MaxInfection = 12096998;
+            TargetDate = DateTime.Parse("2/21/2020");
+            DeathsOnTargetDate = 1;
+            SocialDistancingDate = DateTime.Parse("2/24/2020");
+            SocialDistancingDoublingRate = 4.5;
+            ShelterInPlaceDate = DateTime.Parse("3/3/2020");
+            ShelterInPlaceDoublingRate = 6.5;
+            LockdownDate = DateTime.Parse("3/9/2020");
+            LockdownDoublingRate = 10;
+        }
+
+        if (Nation == "Wisconsin")
+        {
+            DeathReportsStartOn = DateTime.Parse("3/19/2020");
+            DaysTillDouble = 2.5;
+            MaxInfection = 1162800;
+            TargetDate = DateTime.Parse("3/25/2020");
+            DeathsOnTargetDate = 1;
+            SocialDistancingDate = DateTime.Parse("3/15/2020");
+            SocialDistancingDoublingRate = 4.5;
+            ShelterInPlaceDate = DateTime.Parse("3/25/2020");
+            ShelterInPlaceDoublingRate = 6.5;
+            LockdownDate = DateTime.Parse("3/31/2020");
+            LockdownDoublingRate = 10;
+        }
+    }
+
+    private void HandleValidSubmit()
+    {
+        Data = Services.COVID19Service.GenerateModel(Nation, DaysTillDeath, DaysTillDouble, CaseFatalityRate, MaxInfection, TargetDate, DeathsOnTargetDate, SocialDistancingDate, SocialDistancingDoublingRate, ShelterInPlaceDate, ShelterInPlaceDoublingRate, LockdownDate, LockdownDoublingRate, ProjectionLength);
+
+        //output
+        Output = "";
+        foreach (var line in Data)
+        {
+            //if (line.Date >= TargetDate && line.ProjectedDeaths == 0) break;
+            var ReportedOffset = (int)Math.Round((line.Date - DeathReportsStartOn).TotalDays, 0);
+            Output += "<div class='row'>";
+
+
+            if (line.Date == this.SocialDistancingDate)
+            {
+                Output += "<div class='col - sm' style='background-color:lightgreen;'>" + line.Date.ToShortDateString() + "</div>";
+            }
+            else if (line.Date == this.ShelterInPlaceDate)
+            {
+                Output += "<div class='col - sm' style='background-color:yellow;'>" + line.Date.ToShortDateString() + "</div>";
+            }
+            else if (line.Date == this.LockdownDate)
+            {
+                Output += "<div class='col - sm' style='background-color:red;'>" + line.Date.ToShortDateString() + "</div>";
+            }
+            else
+            {
+                Output += "<div class='col - sm'>" + line.Date.ToShortDateString() + "</div>";
+            }
+            Output += "<div class='col - sm'>" + String.Format("{0:n0}", line.ProjectedInfections) + "</div>";
+
+            Output += "<div class='col - sm'>" + String.Format("{0:n0}", line.TotalProjectedInfections) + "</div>";
+
+            if (line.Date >= TargetDate)
+            {
+                if (line.Date == this.SocialDistancingDate.AddDays(this.DaysTillDeath))
+                {
+                    Output += "<div class='col - sm' style='background-color:lightgreen;'>" + String.Format("{0:n0}", line.ProjectedDeaths) + "</div>";
+                }
+                else if (line.Date == this.ShelterInPlaceDate.AddDays(this.DaysTillDeath))
+                {
+                    Output += "<div class='col - sm' style='background-color:yellow;'>" + String.Format("{0:n0}", line.ProjectedDeaths) + "</div>";
+                }
+                else if (line.Date == this.LockdownDate.AddDays(this.DaysTillDeath))
+                {
+                    Output += "<div class='col - sm' style='background-color:red;'>" + String.Format("{0:n0}", line.ProjectedDeaths) + "</div>";
+                }
+                else
+                {
+                    Output += "<div class='col - sm'>" + String.Format("{0:n0}", line.ProjectedDeaths) + "</div>";
+                }
+            }
+            else
+            {
+                Output += "<div class='col - sm'>-</div>";
+            }
+
+            Output += "<div class='col - sm'>" + String.Format("{0:n0}", line.ReportedDeaths) + "</div>";
+
+
+            Output += "<div class='col - sm'>" + String.Format("{0:n0}", line.TotalProjectedDeaths) + "</div>";
+
+            Output += "<div class='col - sm'>" + String.Format("{0:n0}", line.TotalReportedDeaths) + "</div>";
+            Output += "</div>";
+        }
+    }
+}
