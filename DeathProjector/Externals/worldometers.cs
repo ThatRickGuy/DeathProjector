@@ -90,6 +90,10 @@ namespace DeathProjector.Externals
             return lReturn;
         }
 
+        private static int GetWisconsinTotalDeaths()
+        {
+
+        }
         private static List<WorldometerModel> GetWisconsin()
         {
             var lReturn = new List<WorldometerModel>();
