@@ -3,6 +3,8 @@
 @using Telerik.Blazor;
 @using Telerik.Blazor.Components;
 @using DevExpress.Blazor;
+@inject Models.context Context;
+
 <div style="width:100%;">
 
     <div style="width:66%; min-width:500px; border: 1px solid black; float:right; ">
@@ -210,8 +212,8 @@
             MaxInfection = 66200530;
             TargetDate = DateTime.Parse("3/5/2020");
             DeathsOnTargetDate = 1;
-            SocialDistancingDate = DateTime.Parse("3/15/2020");
-            SocialDistancingDoublingRate = 4.5;
+            SocialDistancingDate = DateTime.Parse("3/10/2020");
+            SocialDistancingDoublingRate = 3.5;
             ShelterInPlaceDate = DateTime.Parse("3/25/2020");
             ShelterInPlaceDoublingRate = 6.5;
             LockdownDate = DateTime.Parse("3/31/2020");
@@ -251,7 +253,7 @@
 
     private void HandleValidSubmit()
     {
-        Data = Services.COVID19Service.GenerateModel(Nation, DaysTillDeath, DaysTillDouble, CaseFatalityRate, MaxInfection, TargetDate, DeathsOnTargetDate, SocialDistancingDate, SocialDistancingDoublingRate, ShelterInPlaceDate, ShelterInPlaceDoublingRate, LockdownDate, LockdownDoublingRate, ProjectionLength);
+        Data = Services.COVID19Service.GenerateModel(Context, Nation, DaysTillDeath, DaysTillDouble, CaseFatalityRate, MaxInfection, TargetDate, DeathsOnTargetDate, SocialDistancingDate, SocialDistancingDoublingRate, ShelterInPlaceDate, ShelterInPlaceDoublingRate, LockdownDate, LockdownDoublingRate, ProjectionLength);
 
         //output
         Output = "";

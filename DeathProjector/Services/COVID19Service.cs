@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DeathProjector.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -7,7 +8,7 @@ namespace DeathProjector.Services
 {
     public class COVID19Service
     {
-        public static List<OutputModel> GenerateModel(string Nation, int DaysTillDeath, double DaysTillDouble, 
+        public static List<OutputModel> GenerateModel(context Context, string Nation, int DaysTillDeath, double DaysTillDouble, 
                                          double CaseFatalityRate, int MaxInfection, DateTime TargetDate, int DeathsOnTargetDate, 
                                          DateTime SocialDistancingDate, double SocialDistancingDoublingRate,
                                          DateTime ShelterInPlaceDate , double ShelterInPlaceDoublingRate,
@@ -17,7 +18,7 @@ namespace DeathProjector.Services
             var lReturn = new List<OutputModel>();
 
             // Get history from Worldometer
-            var History = DeathProjector.Externals.worldometers.GetWorldometerData(Nation);
+            var History = DeathProjector.Externals.worldometers.GetWorldometerData(Context, Nation);
 
             // Set initial data
             var doubleRate = (Math.Exp(Math.Log(2) / DaysTillDouble) - 1);

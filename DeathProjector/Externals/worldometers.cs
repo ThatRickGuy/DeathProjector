@@ -1,4 +1,5 @@
-﻿using System;
+﻿using DeathProjector.Models;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -11,16 +12,30 @@ namespace DeathProjector.Externals
         private static Dictionary<string, List<WorldometerModel>> cache = new Dictionary<string, List<WorldometerModel>>();
         private static Dictionary<string, DateTime> cacheDate = new Dictionary<string, DateTime>();
 
-        public static List<WorldometerModel> GetWorldometerData(string Nation)
+        public static List<WorldometerModel> GetWorldometerData(context Context, string Nation)
         {
             var lReturn = new List<WorldometerModel>();
 
-            if (Nation == "WI") return GetWisconsin();
 
-            if (!cache.ContainsKey(Nation) ||
-                !cacheDate.ContainsKey(Nation) ||
-                DateTime.Now > cacheDate[Nation].AddHours(1))
+            // Check memory cache first
+            if (cache.ContainsKey(Nation) &&
+                cacheDate.ContainsKey(Nation) &&
+                DateTime.Now < cacheDate[Nation].AddHours(1))
             {
+                lReturn = cache[Nation];
+            }
+            else if (cacheDate.ContainsKey(Nation) &&  
+                     DateTime.Now < cacheDate[Nation].AddHours(1))
+            {
+                // if we're still in the cache window, check database next
+                lReturn = (from p in Context.RegionDateDeaths where p.Region == Nation select new WorldometerModel() { Date = p.Date, Deaths = p.Deaths }).ToList();
+                cache[Nation] = lReturn;
+            }
+
+            if (lReturn.Count == 0  && (Nation == "US" || Nation =="Italy"))
+            {
+                // nothing in memory or database, pull fresh from the server for USA or Italy
+                // States are wonky because they are stored on the USA page, so they're handled below
                 string Content;
                 using (WebClient client = new WebClient())
                 {
@@ -43,13 +58,23 @@ namespace DeathProjector.Externals
                 {
                     lReturn.Add(new WorldometerModel() { Date = Dates[i], Deaths = Values[i] });
                 }
-                cache[Nation] = lReturn;
                 cacheDate[Nation] = DateTime.Now;
-            }
-            else
+
+                // as long as we're pulling the US, cache state date
+                if (Nation == "US") ParseAndStoreStateData(Context, Content);
+
+            } else if (lReturn.Count == 0 && !(Nation == "US" || Nation == "Italy"))
             {
-                lReturn = cache[Nation];
+                // Nothing stored, not USA or Italy, must be a state
+                string Content;
+                using (WebClient client = new WebClient())
+                {
+                    Content = client.DownloadString("https://www.worldometers.info/coronavirus/country/" + Nation + "/");
+                }
+                ParseAndStoreStateData(Context, Content);
             }
+
+                cache[Nation] = lReturn;
             return lReturn;
         }
 
@@ -90,8 +115,57 @@ namespace DeathProjector.Externals
             return lReturn;
         }
 
-        private static int GetWisconsinTotalDeaths()
+        private static void ParseAndStoreStateData(context Context, string Content)
         {
+            var StateTablesStart = Content.IndexOf("usa_table_countries_today");
+            var BodyStart = Content.IndexOf("<tbody>", StateTablesStart);
+            var BodyEnd = Content.IndexOf("</tbody>", BodyStart);
+
+            var searchIndex = BodyStart;
+            while (searchIndex < BodyEnd)
+            {
+                var rdd = new Models.RegionDateDeath();
+                //start of row
+                searchIndex = Content.IndexOf("<tr ", searchIndex);
+                //start of cell
+                searchIndex = Content.IndexOf("<td ", searchIndex);
+                //State Name
+                var StartOfValue = Content.IndexOf(">", searchIndex)+1;
+                var EndOfValue = Content.IndexOf("<", StartOfValue);
+                rdd.Date = DateTime.Now.Date;
+                rdd.Region = Content.Substring(StartOfValue, EndOfValue - StartOfValue).Trim();
+
+                //Total Cases
+                StartOfValue = Content.IndexOf("<td", EndOfValue);
+                //New Cases
+                StartOfValue = Content.IndexOf("<td", StartOfValue);
+                //Total Deaths
+                StartOfValue = Content.IndexOf("<td", StartOfValue);
+                StartOfValue = Content.IndexOf(">", StartOfValue)+1;
+                EndOfValue = Content.IndexOf("<", StartOfValue)+1;
+                var previouslyReportedDeaths = (from p in Context.RegionDateDeaths where p.Region == rdd.Region select p.Deaths).Sum();
+                var currentlyReportedDeaths = int.Parse(Content.Substring(StartOfValue, EndOfValue - StartOfValue-1).Trim().Replace(",",string.Empty));
+                rdd.Deaths = currentlyReportedDeaths -= previouslyReportedDeaths;
+                Context.RegionDateDeaths.Add(rdd);
+
+                searchIndex = EndOfValue;
+            }
+            Context.SaveChanges();
+
+            var DistinctRegions = (from p in Context.RegionDateDeaths orderby p.Region select p.Region).Distinct().ToList();
+            foreach (var Region in DistinctRegions)
+            {
+                var q = (from p in Context.RegionDateDeaths where p.Region == Region orderby p.Date select new WorldometerModel() {Date = p.Date, Deaths = p.Deaths }).ToList();
+                if (cache.ContainsKey(Region))
+                {
+                    cache[Region] = q;
+                    cacheDate[Region] = DateTime.Now;
+                } else
+                {
+                    cache.Add(Region, q);
+                    cacheDate.Add(Region, DateTime.Now);
+                }
+            }
 
         }
         private static List<WorldometerModel> GetWisconsin()
