@@ -16,6 +16,7 @@ namespace DeathProjector.Externals
         {
             var lReturn = new List<WorldometerModel>();
 
+            if (Nation == "WI") return GetWisconsin();
 
             // Check memory cache first
             if (cache.ContainsKey(Nation) &&
@@ -179,10 +180,18 @@ namespace DeathProjector.Externals
             lReturn.Add(new WorldometerModel() { Date = new DateTime(2020, 3, 23, 0, 0, 0, 0), Deaths = 1 });
             lReturn.Add(new WorldometerModel() { Date = new DateTime(2020, 3, 24, 0, 0, 0, 0), Deaths = 1 });
             lReturn.Add(new WorldometerModel() { Date = new DateTime(2020, 3, 25, 0, 0, 0, 0), Deaths = 2 });
-            lReturn.Add(new WorldometerModel() { Date = new DateTime(2020, 3, 26, 0, 0, 0, 0), Deaths = 2 });
-            lReturn.Add(new WorldometerModel() { Date = new DateTime(2020, 3, 27, 0, 0, 0, 0), Deaths = 7 });
-            lReturn.Add(new WorldometerModel() { Date = new DateTime(2020, 3, 28, 0, 0, 0, 0), Deaths = 1 });
-            lReturn.Add(new WorldometerModel() { Date = new DateTime(2020, 3, 29, 0, 0, 0, 0), Deaths = 1 });
+            lReturn.Add(new WorldometerModel() { Date = new DateTime(2020, 3, 26, 0, 0, 0, 0), Deaths = 3 }); //10
+            lReturn.Add(new WorldometerModel() { Date = new DateTime(2020, 3, 27, 0, 0, 0, 0), Deaths = 4 }); //14
+            lReturn.Add(new WorldometerModel() { Date = new DateTime(2020, 3, 28, 0, 0, 0, 0), Deaths = 1 }); //15
+            lReturn.Add(new WorldometerModel() { Date = new DateTime(2020, 3, 29, 0, 0, 0, 0), Deaths = 2 }); //17
+            lReturn.Add(new WorldometerModel() { Date = new DateTime(2020, 3, 30, 0, 0, 0, 0), Deaths = 0 }); //17
+            lReturn.Add(new WorldometerModel() { Date = new DateTime(2020, 3, 31, 0, 0, 0, 0), Deaths = 8 }); //25
+            lReturn.Add(new WorldometerModel() { Date = new DateTime(2020, 4, 1, 0, 0, 0, 0), Deaths = 0 }); //25
+            lReturn.Add(new WorldometerModel() { Date = new DateTime(2020, 4, 2, 0, 0, 0, 0), Deaths = 6 }); //31
+            lReturn.Add(new WorldometerModel() { Date = new DateTime(2020, 4, 3, 0, 0, 0, 0), Deaths = 15 }); //46
+            lReturn.Add(new WorldometerModel() { Date = new DateTime(2020, 4, 4, 0, 0, 0, 0), Deaths = 10 }); //56
+            lReturn.Add(new WorldometerModel() { Date = new DateTime(2020, 4, 5, 0, 0, 0, 0), Deaths = 12 }); //68
+            lReturn.Add(new WorldometerModel() { Date = new DateTime(2020, 4, 6, 0, 0, 0, 0), Deaths = 9 });
 
             return lReturn;
         }
